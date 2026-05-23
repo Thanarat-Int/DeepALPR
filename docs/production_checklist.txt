@@ -1,0 +1,168 @@
+================================================================
+DEEP ALPR · PRODUCTION GO-LIVE CHECKLIST
+================================================================
+Project       : Deep ALPR Access Control System
+Prepared for  : Site deployment readiness review
+Last updated  : 2026-05-23
+Owner         : (assign before kickoff)
+
+----------------------------------------------------------------
+LEGEND
+  [ ]  not started
+  [~]  in progress
+  [x]  completed
+----------------------------------------------------------------
+
+
+10-ITEM PRODUCTION CHECKLIST
+============================
+
+[ ] 1. REAL DATA COLLECTION AND MODEL RE-TRAINING
+       Goal: OCR accuracy reaches 95% on real plates from the actual cameras.
+       Tasks:
+         a. Install pilot cameras at the target site.
+         b. Capture 2 weeks of footage covering day, night, and rain.
+         c. Extract 5,000 to 20,000 plate crops.
+         d. Annotate ground-truth text (in-house or vendor at 3 to 7 THB / image).
+         e. Fine-tune CRNN from current synthetic checkpoint.
+         f. Evaluate on a held-out real set; iterate until 95% is hit.
+       Estimated effort  : 3 to 4 weeks
+       Blocking?         : YES (cannot go live without this)
+
+
+[ ] 2. ON-SITE HARDWARE INSTALLATION
+       Required equipment per gate:
+         a. IP camera, 2 MP or higher, day/night, IR illuminator, lens 6 to 12 mm.
+         b. Edge compute box: Jetson Orin Nano or Intel NUC with GPU/TPU.
+         c. Gate controller board with Wiegand, RS485, or MQTT interface.
+         d. Gigabit LAN cabling (avoid Wi-Fi for cameras).
+         e. UPS with at least 30 minutes runtime.
+         f. SSD 256 GB or higher for local storage + central NAS for archive.
+       Estimated effort  : 1 week per gate
+       Blocking?         : YES
+
+
+[ ] 3. DATABASE MIGRATION TO PRODUCTION RDBMS
+       Move from SQLite (POC) to PostgreSQL or MySQL.
+       Tasks:
+         a. Provision DB server (managed or self-hosted).
+         b. Adapt SQL syntax and connection pooling in the codebase.
+         c. Set up nightly dump + offsite backup + restore drill.
+         d. Configure read replica if multi-gate deployment.
+       Estimated effort  : 3 to 5 days
+       Blocking?         : recommended (not strictly blocking for single gate)
+
+
+[ ] 4. SECURITY HARDENING
+       Tasks:
+         a. Terminate HTTPS at Nginx or Caddy using Let's Encrypt certificates.
+         b. Move session tokens from in-memory store to Redis or a proper JWT secret.
+         c. Configure rate limiting (per IP and per API key).
+         d. Rotate API keys; remove demo accounts (admin/admin123, operator/operator123).
+         e. Apply least-privilege firewall rules; expose only HTTPS publicly.
+       Estimated effort  : 3 days
+       Blocking?         : YES
+
+
+[ ] 5. GATE HARDWARE INTEGRATION
+       Currently /api/gate/open only logs the action (simulated).
+       Tasks:
+         a. Choose the integration protocol (Wiegand, RS485, MQTT, or HTTP webhook).
+         b. Implement the driver inside the backend and wire it to the relay board.
+         c. Add fail-safe behavior (if hardware unreachable: alert operator, no silent failures).
+         d. End-to-end test with the physical barrier.
+       Estimated effort  : 4 to 7 days
+       Blocking?         : YES
+
+
+[ ] 6. MONITORING, LOGGING, AND BACKUP
+       Tasks:
+         a. Prometheus + Grafana dashboards for API latency, error rate, pipeline FPS.
+         b. Centralized logs (Loki, ELK, or CloudWatch).
+         c. Alerting rules (PagerDuty, LINE Notify, or email) for: camera down, OCR
+            confidence drop, gate failure, DB connection loss.
+         d. Verified backup + restore procedure for events DB and image archive.
+       Estimated effort  : 4 to 6 days
+       Blocking?         : recommended
+
+
+[ ] 7. PDPA AND LEGAL COMPLIANCE
+       Plate, owner data, and captured images count as personal data under Thai PDPA.
+       Tasks:
+         a. Privacy notice posted at every monitored entry.
+         b. Consent forms for everyone registered in the vehicle whitelist.
+         c. Documented retention policy (system already enforces 90 days).
+         d. Appoint a Data Protection Officer if the site qualifies.
+         e. CCTV compliance check with local regulations.
+         f. Verify Ultralytics YOLOv8 license: AGPL-3.0 requires open-sourcing the
+            deployment, otherwise purchase a commercial license from Ultralytics.
+       Estimated effort  : 1 to 2 weeks (legal review)
+       Blocking?         : YES
+
+
+[ ] 8. SLA AND OPERATIONAL DOCUMENTATION
+       Agree with the customer and put in writing:
+         a. Uptime target (suggested: 99.5%).
+         b. OCR accuracy threshold (client brief: 95%).
+         c. End-to-end latency: detection to gate open (target less than 500 ms).
+         d. Incident response time and escalation path.
+         e. Planned maintenance window.
+         f. Runbook for common incidents: camera down, OCR drift, gate stuck,
+            DB locked, full disk.
+       Estimated effort  : 3 to 5 days
+       Blocking?         : recommended
+
+
+[ ] 9. PILOT RUN IN SHADOW MODE
+       Run for 4 weeks before flipping the switch.
+       Tasks:
+         a. System makes decisions but does NOT trigger the physical gate.
+         b. Log every decision; operators check against ground truth daily.
+         c. Track real-world accuracy, false-grant rate, false-deny rate.
+         d. Tune thresholds (confidence cutoff, plate match strictness).
+         e. Get written sign-off from the customer before go-live.
+       Estimated effort  : 4 weeks (calendar) with ~2 hours / day from ops
+       Blocking?         : recommended
+
+
+[ ] 10. GO-LIVE AND ON-SITE SUPPORT
+       Tasks:
+         a. Cutover plan with explicit rollback steps.
+         b. On-site engineer for the first 2 weeks.
+         c. Daily review meeting for the first week.
+         d. Weekly review meeting for month 1.
+         e. Schedule first model retraining at month 3.
+         f. Schedule camera lens cleaning + alignment check monthly.
+       Estimated effort  : 2 weeks intensive + ongoing
+       Blocking?         : the go-live event itself
+
+
+----------------------------------------------------------------
+TIMELINE SUMMARY
+----------------------------------------------------------------
+Minimum from kickoff to go-live: 6 to 10 weeks.
+
+  Week 1 to 2 :  hardware install + start data collection
+  Week 3 to 5 :  re-train model, build out infra, security hardening
+  Week 6      :  integration testing
+  Week 7 to 10:  shadow-mode pilot
+  Week 11     :  go-live + 2-week intensive support
+
+Hard blockers (cannot skip):
+  1, 2, 4, 5, 7, 10
+
+Strongly recommended:
+  3, 6, 8, 9
+
+
+----------------------------------------------------------------
+SIGN-OFF
+----------------------------------------------------------------
+Project Manager   : ____________________________  Date: __________
+Lead Engineer     : ____________________________  Date: __________
+Customer Rep      : ____________________________  Date: __________
+DPO / Legal       : ____________________________  Date: __________
+
+================================================================
+End of checklist
+================================================================

@@ -1,0 +1,56 @@
+# ===== Deep ALPR System Configuration =====
+# All relative paths are resolved against the project root.
+
+capture:
+  source: "assets/mock_traffic.mp4"   # video file path or RTSP URL
+  fps_limit: 0                        # 0 = process every frame
+  loop: false                         # demo mode: replay mock video forever for the Live Camera
+
+detection:
+  vehicle_model: "yolov8n.pt"
+  vehicle_classes: [2, 3, 5, 7]       # car, motorcycle, bus, truck (COCO ids)
+  vehicle_conf: 0.40
+  plate_mode: "mock"                  # "mock" = use ground-truth sidecar | "model" = trained detector
+  plate_model: "models/plate_detector.pt"
+  plate_conf: 0.35
+  min_plate_width: 60                 # skip plates smaller than this (too far to read)
+
+tracking:
+  max_age: 30                         # frames a track survives without a match
+  min_hits: 3                         # detections before a track is confirmed
+  iou_threshold: 0.1                  # low: plates move fast between frames before motion is known
+
+speed:
+  meters_per_pixel: 0.013             # calibration factor -- tune to real lane geometry
+  max_speed_kmh: 35                   # brief requirement: gate vehicles <= 35 km/h
+  speed_gate_enabled: true
+
+ocr:
+  model: "models/ocr_crnn.pt"
+  img_height: 32
+  img_width: 200
+  min_confidence: 0.50
+  votes_required: 6                   # min frames before an event is emitted (kills spurious tracks)
+
+storage:
+  db_path: "data/alpr.db"
+  image_dir: "data/captures"
+
+retention:
+  image_days: 90                      # auto-delete capture images older than this (0 = keep forever)
+  event_days: 0                       # auto-delete event records older than this (0 = keep forever)
+
+api:
+  host: "127.0.0.1"
+  port: 8000
+  api_key: "demo-secret-key-change-me"
+
+webhook:
+  enabled: true
+  url: ""                             # client endpoint; empty = log only (no POST)
+  retries: 3
+  timeout_seconds: 5
+
+gate:
+  id: "MAIN 01"                       # identifier of this lane / entry point
+  direction: "in"                     # in | out

@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+
+# Virtual envs
+venv/
+.venv/
+env/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Tooling / sessions
+.claude/
+.sixth/
+
+# Training-time data (regenerable via src/data/make_dataset.py + make_mock_video.py)
+data/ocr_dataset/
+data/plate_dataset/
+data/plate_dataset_combined/
+data/plate_dataset_ext/
+data/_preview/
+data/_preview_8types/
+
+# Runtime data — keep the folder shape, drop captured images + the demo DB
+data/captures/*
+!data/captures/.gitkeep
+!data/captures/demo_*.png
+data/alpr.db
+data/alpr.db-journal
+
+# Heavy demo assets that can be regenerated or fetched separately
+assets/car.mp4
+assets/mock_traffic.mp4
+assets/mock_traffic.plates.json
+assets/demo_output.mp4
+
+# Training logs / older model versions
+models/ocr_train_log.txt
+models/ocr_train_log_v1.txt
+models/ocr_eval_pertype.txt
+models/ocr_eval_compare.txt
+models/ocr_crnn_v1_*.pt
+
+# Build / package output
+runs/
+deployment_kit/
+deployment_kit.zip
+deep_alpr_release/
+deep_alpr_release.zip
+tools/
+logs/
+
+# Legacy code (older vehicle-counter prototype, kept out of the public repo)
+legacy/
+yolo11n.pt

@@ -1,0 +1,46 @@
+# Deep ALPR · docker compose for single-PC deployment.
+#
+# Start:    docker compose up -d
+# Stop:     docker compose down
+# Logs:     docker compose logs -f
+# Update:   docker compose pull && docker compose up -d
+
+services:
+  deep-alpr:
+    build: .
+    image: deep-alpr:latest
+    container_name: deep-alpr
+    restart: unless-stopped     # auto-restart on crash or host reboot
+
+    ports:
+      - "8000:8000"             # dashboard + REST API
+
+    volumes:
+      # Persist database, captured images, and logs OUTSIDE the container
+      # so they survive image rebuilds and rollbacks.
+      - ./data:/data
+      - ./logs:/logs
+      # Hot-reload config without rebuild (edit on host, restart container)
+      - ./config.yaml:/app/config.yaml:ro
+
+    environment:
+      - TZ=Asia/Bangkok
+      - PYTHONUNBUFFERED=1      # ensure print() shows up in docker logs
+
+    # --- GPU access ----------------------------------------------------------
+    # Requires nvidia-container-toolkit installed on the host
+    # (or WSL2 + Docker Desktop with GPU support on Windows).
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    # Logging configuration: rotate so logs do not fill the disk
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"

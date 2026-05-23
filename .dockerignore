@@ -1,0 +1,42 @@
+# Files NOT to copy into the docker image (keeps image small).
+
+# Python build artifacts
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+*.egg-info
+
+# Local dev state
+data/
+runs/
+logs/
+.venv/
+venv/
+
+# Training-time only (image needs only trained weights, not the dataset)
+data/ocr_dataset/
+data/plate_dataset*/
+models/ocr_train_log*.txt
+models/ocr_eval_*.txt
+models/ocr_crnn_v1_*.pt
+
+# Heavy demo assets not needed at runtime
+assets/car.mp4
+assets/mock_traffic.mp4
+assets/demo_output.mp4
+assets/mock_traffic.plates.json
+
+# Dev tooling
+tests/
+legacy/
+.claude/
+.sixth/
+.git/
+.gitignore
+*.md
+docs/
+package_release.ps1
+deep_alpr_release/
+deep_alpr_release.zip
