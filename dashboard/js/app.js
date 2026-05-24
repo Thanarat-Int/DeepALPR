@@ -199,6 +199,14 @@ function setTheme(mode){
 const $  = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+// Thai plate display: insert a space between the consonant cluster and the
+// trailing digit cluster, matching the printed format ("กร 5539", "1กข 234").
+// Stored value stays compact ("กร5539") -- this is display-only.
+const fmtPlate = s => {
+  if(!s) return "";
+  const m = String(s).match(/^(\d?[ก-ฮ]+)(\d+)$/);
+  return m ? m[1] + " " + m[2] : String(s);
+};
 const debounce = (fn,ms)=>{ let x; return (...a)=>{ clearTimeout(x); x=setTimeout(()=>fn(...a),ms); }; };
 const capName = p => p ? p.split(/[\\/]/).pop() : "";
 const blank = '<span class="t-mute">·</span>';
@@ -283,7 +291,7 @@ function eventPopup(ev){
   const ic = ev.decision==="granted"?"check":ev.decision==="denied"?"ban":"alert";
   const root = $("#modal-root");
   root.innerHTML = `<div class="modal-overlay"><div class="modal modal-wide">
-    <div class="modal-head"><div class="modal-title">${t("th_plate")} · ${esc(ev.plate)}</div>
+    <div class="modal-head"><div class="modal-title">${t("th_plate")} · ${esc(fmtPlate(ev.plate))}</div>
       <button class="icon-btn" data-close>${icon("x",16)}</button></div>
     <div class="modal-body">
       <div class="lb-img">${imgUrl
@@ -504,6 +512,38 @@ async function viewConsole(){
       </div>
       <div class="live-cam-frame" id="lc-frame">
         <img id="lc-img" alt="Live preview" style="display:none">
+        <!-- World-class ALPR convention: two nested bboxes, no labels.
+             Outer (cyan)  = vehicle detection bounds.
+             Inner (green) = plate detection bounds.
+             All extracted data is shown in the right-hand overlay card
+             instead of being printed on the image. -->
+        <svg class="lc-bbox-svg" viewBox="0 0 961 541"
+             preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+
+          <!-- VEHICLE bbox (cyan, outer): thin solid border + corner ticks -->
+          <rect class="lc-vbox-rect" x="218" y="82" width="592" height="445"
+                rx="3" fill="none" stroke="#06b6d4"
+                stroke-width="1.6" stroke-opacity="0.55" />
+          <g stroke="#06b6d4" stroke-width="2.6" fill="none"
+             stroke-linecap="square" stroke-opacity="0.95">
+            <path d="M218,116 L218,82  L252,82" />
+            <path d="M776,82  L810,82  L810,116" />
+            <path d="M218,493 L218,527 L252,527" />
+            <path d="M776,527 L810,527 L810,493" />
+          </g>
+
+          <!-- PLATE bbox (green, inner): solid corner brackets only -->
+          <rect class="lc-bbox-rect" x="375" y="405" width="245" height="80"
+                rx="2" fill="none" stroke="#22c55e"
+                stroke-width="1.6" stroke-opacity="0.55" />
+          <g stroke="#22c55e" stroke-width="3" fill="none"
+             stroke-linecap="square">
+            <path d="M375,430 L375,405 L400,405" />
+            <path d="M595,405 L620,405 L620,430" />
+            <path d="M375,460 L375,485 L400,485" />
+            <path d="M595,485 L620,485 L620,460" />
+          </g>
+        </svg>
         <div class="live-cam-ph" id="lc-empty">
           ${icon("video",38)}
           <div class="lcp-title">${t("live_cam_msg")}</div>
@@ -596,7 +636,7 @@ function renderLiveOverlay(el, ev){
   el.innerHTML = `
     <div class="lo-card lo-${dec}">
       <div class="lo-banner">${icon(ic,18)} <span>${txt}</span></div>
-      <div class="lo-plate">${esc(ev.plate||"")}</div>
+      <div class="lo-plate">${esc(fmtPlate(ev.plate))}</div>
       <div class="lo-rows">${parts}</div>
     </div>`;
   el.classList.add("lo-show");
@@ -618,7 +658,7 @@ function renderHero(ev){
     <div class="hero-body">
       <div class="decision-banner ${ev.decision}">${icon(ic,20)}
         <div><div class="db-main">${txt}</div><div class="db-sub">${esc(ev.reason||"")}</div></div></div>
-      <div style="text-align:center;margin:2px 0 6px"><span class="plate-tag xl">${esc(ev.plate)}</span></div>
+      <div style="text-align:center;margin:2px 0 6px"><span class="plate-tag xl">${esc(fmtPlate(ev.plate))}</span></div>
       <div class="hero-info">
         <div class="info-row"><span class="k">${t("c_owner")}</span><span class="v">${esc(ev.owner_name||t("unknown"))}</span></div>
         ${ev.province?`<div class="info-row"><span class="k">${t("c_province")}</span><span class="v">${esc(ev.province)}</span></div>`:""}
@@ -654,7 +694,7 @@ function renderFeed(events, newIds){
     return `<div class="feed-item ${newIds&&newIds.has(ev.id)?"new":""}">
       ${img?`<img class="feed-thumb zoomable" data-ev="${ev.id}" src="/api/captures/${img}" onerror="this.style.visibility='hidden'">`:'<div class="feed-thumb"></div>'}
       <div class="feed-mid">
-        <div class="feed-plate">${esc(ev.plate)} ${provBit}</div>
+        <div class="feed-plate">${esc(fmtPlate(ev.plate))} ${provBit}</div>
         <div class="feed-meta">${esc(ev.owner_name||t("unregistered"))} &nbsp;·&nbsp; ${fmtClockShort(ev.timestamp)}</div></div>
       ${decBadge(ev.decision)}</div>`;
   }).join("");
@@ -719,7 +759,7 @@ function rowLog(ev){
   const img = capName(ev.image_path);
   return `<tr>
     <td>${img?`<img class="feed-thumb zoomable" data-ev="${ev.id}" src="/api/captures/${img}" onerror="this.style.visibility='hidden'">`:'<div class="feed-thumb"></div>'}</td>
-    <td><span class="t-plate">${esc(ev.plate)}</span></td>
+    <td><span class="t-plate">${esc(fmtPlate(ev.plate))}</span></td>
     <td>${decBadge(ev.decision)}</td>
     <td>${ev.owner_name?esc(ev.owner_name):blank}</td>
     <td>${vtypeBadge(ev.vehicle_type)}</td>
@@ -758,7 +798,7 @@ async function viewVehicles(){
 }
 function rowVehicle(v,admin){
   return `<tr>
-    <td><span class="t-plate">${esc(v.plate)}</span></td>
+    <td><span class="t-plate">${esc(fmtPlate(v.plate))}</span></td>
     <td>${esc(v.province||"·")}</td>
     <td>${esc(v.owner_name||"·")}</td>
     <td>${esc(v.unit||"·")}</td>
@@ -834,7 +874,7 @@ async function viewBlacklist(){
   const load = async ()=>{
     const rows = await API.get("/api/blacklist").catch(()=>[]);
     $("#b-body").innerHTML = rows.map(b=>`<tr>
-      <td><span class="t-plate">${esc(b.plate)}</span></td>
+      <td><span class="t-plate">${esc(fmtPlate(b.plate))}</span></td>
       <td>${esc(b.reason||"·")}</td>
       <td class="t-mute">${fmtTime(b.created_at)}</td>
       ${admin?`<td><button class="icon-btn" data-del="${b.id}">${icon("trash",14)}</button></td>`:""}
@@ -1054,7 +1094,7 @@ function barRow(label, n, max, color){
 
 function topRow(r){
   return `<tr>
-    <td><span class="t-plate">${esc(r.plate)}</span></td>
+    <td><span class="t-plate">${esc(fmtPlate(r.plate))}</span></td>
     <td>${esc(r.owner_name||t("unknown"))}</td>
     <td>${vtypeBadge(r.vehicle_type)}</td>
     <td style="font-weight:700">${r.total}</td>

@@ -379,6 +379,18 @@ tbody tr:last-child td { border-bottom: none; }
   min-height: 260px;
 }
 .live-cam-frame img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+/* AI detection bbox: SVG overlaid on the same frame, with preserveAspectRatio
+   matching object-fit:contain so the rect always lands on the plate. */
+.lc-bbox-svg {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; opacity: 0;
+  animation: lc-bbox-fade .8s ease-out .3s forwards;
+}
+@keyframes lc-bbox-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
 .live-cam-ph {
   position: absolute; inset: 0; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 6px;
